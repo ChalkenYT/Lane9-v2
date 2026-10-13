@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Calculate and compare Swimcloud Power Indexes for swimmers.">
+  <title>L9 - Swimcloud Power Index Calculator</title>
+
+  <!-- PWA Manifest Inline Data URL -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"L9 Power Index Calculator","short_name":"L9","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://placehold.co/192x192/06b6d4/ffffff?text=L9","sizes":"192x192","type":"image/png"},{"src":"https://placehold.co/512x512/06b6d4/ffffff?text=L9","sizes":"512x512","type":"image/png"}]}'>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col bg-slate-900 text-slate-100">
+
+  <header class="border-b border-slate-800 bg-slate-950/70 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center space-x-2.5 min-w-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 font-bold text-base sm:text-lg shrink-0">
+          L9
+        </div>
+        <div class="truncate">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400 bg-clip-text text-transparent truncate">
+            Lane9
+          </h1>
+          <p class="text-[10px] sm:text-xs text-slate-400 truncate">Power Index Calculator</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
+        <button id="navCalcBtn" class="px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-calculator"></i>
+          <span class="hidden md:inline">Calculator</span>
+        </button>
+        <button id="navProfilesBtn" class="px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-users"></i>
+          <span class="hidden md:inline">Profiles</span>
+          <span id="profileBadgeCount" class="bg-cyan-500/20 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">0</span>
+        </button>
+        <button id="navCompareBtn" class="px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-code-compare"></i>
+          <span class="hidden md:inline">Compare</span>
+        </button>
+        <button id="helpBtn" class="p-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors" title="How it Works">
+          <i class="fa-solid fa-circle-question text-sm"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+
+    <!-- VIEW 1: CALCULATOR & PARSER -->
+    <div id="calculatorView" class="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+      
+      <!-- Left Column: Input and Raw Paste -->
+      <section class="lg:col-span-5 flex flex-col gap-4 sm:gap-5">
+        <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col gap-3.5">
+          <div class="flex items-center justify-between">
+            <label for="rawPasteInput" class="text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-paste text-cyan-400"></i>
+              Paste Swimcloud Times
+            </label>
+            <button id="clearBtn" class="text-xs text-slate-400 hover:text-slate-200 transition-colors py-1 px-2">
+              Clear
+            </button>
+          </div>
+
+          <textarea id="rawPasteInput" rows="6" 
+            placeholder="Paste raw table text directly from Swimcloud profile page here...&#10;&#10;e.g.&#10;EventTimePoints&#10;50 Y Fly26.2393.38&#10;200 S IM2:33.33U100.00&#10;50 Y Free24.97100.00"
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all resize-none"></textarea>
+
+          <div class="flex items-center justify-between gap-2.5">
+            <button id="loadSampleBtn" class="px-3 py-2.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors flex-1 min-h-[40px]">
+              <i class="fa-solid fa-vial text-cyan-400 mr-1"></i> Sample
+            </button>
+            <button id="calculateBtn" class="px-4 py-2.5 text-xs font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/25 transition-all flex-1 min-h-[40px] flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-calculator"></i> Calculate
+            </button>
+          </div>
+        </div>
+
+        <!-- Save Profile Card -->
+        <div id="saveProfileSection" class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl hidden flex-col gap-3">
+          <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-user-plus text-cyan-400"></i> Save to Local Profiles
+          </h3>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="swimmerNameInput" placeholder="Swimmer Name (e.g. Caleb Dressel)" 
+              class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[40px]">
+            <button id="saveProfileBtn" class="px-4 py-2.5 text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl transition-all min-h-[40px]">
+              Save
+            </button>
+          </div>
+          <p id="saveFeedbackMsg" class="text-[11px] text-emerald-400 hidden"><i class="fa-solid fa-check"></i> Profile saved locally!</p>
+        </div>
+
+        <!-- Quick Summary Card -->
+        <div id="indexSummaryCard" class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl text-center relative overflow-hidden hidden">
+          <div class="absolute -right-10 -bottom-10 w-36 h-36 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Calculated Power Index</span>
+          <div id="powerIndexVal" class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white my-2 sm:my-3">--</div>
+          <p id="powerIndexDesc" class="text-[11px] sm:text-xs text-slate-400 max-w-xs mx-auto">
+            Lower is better. Score close to 1.00 indicates NCAA D1 Championship qualifying standards.
+          </p>
+        </div>
+      </section>
+
+      <!-- Right Column: Parsed Events Table -->
+      <section class="lg:col-span-7 flex flex-col gap-5">
+        <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex-1 flex flex-col">
+          <div class="flex items-center justify-between pb-3.5 border-b border-slate-800/80">
+            <div>
+              <h2 class="text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-cyan-400"></i>
+                Parsed Events & Power Points
+              </h2>
+              <p class="text-[11px] sm:text-xs text-slate-500">Sorted by lowest (strongest) Power Points</p>
+            </div>
+            <span id="eventCountBadge" class="px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-medium bg-slate-800 text-slate-300 rounded-full shrink-0">
+              0 Events
+            </span>
+          </div>
+
+          <div class="flex-1 overflow-x-auto mt-3">
+            <table class="w-full text-left border-collapse min-w-[500px] sm:min-w-full">
+              <thead>
+                <tr class="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                  <th class="py-2.5 px-2 sm:px-3">Rank</th>
+                  <th class="py-2.5 px-2 sm:px-3">Event</th>
+                  <th class="py-2.5 px-2 sm:px-3">Time</th>
+                  <th class="py-2.5 px-2 sm:px-3 text-right">Base</th>
+                  <th class="py-2.5 px-2 sm:px-3 text-right">Points</th>
+                  <th class="py-2.5 px-2 sm:px-3 text-center">Weight</th>
+                </tr>
+              </thead>
+              <tbody id="eventsTableBody" class="divide-y divide-slate-800/60 text-xs">
+                <tr>
+                  <td colspan="6" class="py-12 text-center text-slate-500 italic">
+                    Paste Swimcloud times on the left and click "Calculate" to begin.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- VIEW 2: SAVED PROFILES -->
+    <div id="profilesView" class="hidden flex-col gap-6">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-address-book text-cyan-400"></i> Saved Swimmer Profiles
+          </h2>
+          <p class="text-xs text-slate-400">All data is saved locally on your browser/device.</p>
+        </div>
+        <button id="clearAllProfilesBtn" class="text-xs text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg transition-colors">
+          <i class="fa-solid fa-trash-can mr-1"></i> Delete All Profiles
+        </button>
+      </div>
+
+      <div id="profilesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Dynamic profiles loaded here -->
+      </div>
+    </div>
+
+    <!-- VIEW 3: COMPARE PROFILES SIDE BY SIDE -->
+    <div id="compareView" class="hidden flex-col gap-6">
+      <div class="border-b border-slate-800 pb-4">
+        <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-code-compare text-cyan-400"></i> Side-by-Side Swimmer Comparison
+        </h2>
+        <p class="text-xs text-slate-400">Select two saved profiles to compare their top events and Power Index.</p>
+      </div>
+
+      <!-- Selectors -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-slate-950/60 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Swimmer 1</label>
+          <select id="compareSelect1" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 min-h-[40px]">
+            <option value="">Select profile...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Swimmer 2</label>
+          <select id="compareSelect2" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 min-h-[40px]">
+            <option value="">Select profile...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Comparison Output Container -->
+      <div id="comparisonContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+        <!-- Swimmer 1 Column -->
+        <div id="compareCol1" class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Swimmer 2 Column -->
+        <div id="compareCol2" class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Empty state if no profiles -->
+      <div id="compareEmptyState" class="text-center py-16 bg-slate-950/40 border border-slate-800/80 rounded-2xl">
+        <i class="fa-solid fa-users-slash text-4xl text-slate-600 mb-3"></i>
+        <p class="text-sm text-slate-400 font-medium">Please save at least 2 swimmer profiles to enable comparison.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal Help Dialog -->
+  <div id="helpModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+      <button id="closeHelpBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+      <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 mb-3">
+        <i class="fa-solid fa-info-circle text-cyan-400"></i>
+        How Swimcloud Power Index Works
+      </h3>
+      <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
+        <p>1. <strong>Base Times:</strong> Each event (SCY, SCM, LCM) is evaluated against NCAA Division I Championship standards.</p>
+        <p>2. <strong>Formula:</strong> Points for an individual event are calculated using:</p>
+        <div class="bg-slate-950 p-2.5 rounded-lg font-mono text-[11px] text-cyan-300 border border-slate-800">
+          Points = (((Time / BaseTime) ^ 3) - 1) * 100 + 1
+        </div>
+        <p>3. <strong>Weighted Average:</strong> The overall Power Index uses your top 4 scoring events:</p>
+        <ul class="list-disc pl-5 space-y-1 text-slate-400">
+          <li>Events 1 & 2: <strong>100% weight</strong></li>
+          <li>Event 3: <strong>25% weight</strong></li>
+          <li>Event 4: <strong>2% weight</strong></li>
+        </ul>
+        <p class="text-slate-400 italic">Lower overall index scores reflect faster times relative to NCAA D1 standards.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          self.addEventListener('install', (e) => self.skipWaiting());
+          self.addEventListener('activate', (e) => self.clients.claim());
+          self.addEventListener('fetch', (e) => {
+            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+          });
+        `;
+        const blob = new Blob([swCode], { type: 'text/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+      });
+    }
+
+    /* NCAA Division I Men's Qualifying Base Times */
+    const BASE_TIMES = {
+      // Short Course Yards (SCY / Y)
+      "50 Y Free": 19.43,
+      "100 Y Free": 42.55,
+      "200 Y Free": 93.93,
+      "500 Y Free": 258.07,
+      "1000 Y Free": 535.00,
+      "1650 Y Free": 906.60,
+      "50 Y Back": 21.30,
+      "100 Y Back": 46.29,
+      "200 Y Back": 102.14,
+      "50 Y Breast": 24.10,
+      "100 Y Breast": 52.58,
+      "200 Y Breast": 114.95,
+      "50 Y Fly": 21.10,
+      "100 Y Fly": 46.11,
+      "200 Y Fly": 103.79,
+      "200 Y IM": 104.13,
+      "400 Y IM": 226.19,
+
+      // Short Course Meters (SCM / S)
+      "50 S Free": 21.74,
+      "100 S Free": 47.27,
+      "200 S Free": 104.09,
+      "400 S Free": 226.60,
+      "800 S Free": 472.00,
+      "1500 S Free": 894.91,
+      "50 S Back": 23.70,
+      "100 S Back": 51.43,
+      "200 S Back": 113.48,
+      "50 S Breast": 26.80,
+      "100 S Breast": 58.36,
+      "200 S Breast": 127.60,
+      "50 S Fly": 23.40,
+      "100 S Fly": 51.37,
+      "200 S Fly": 115.31,
+      "200 S IM": 115.70,
+      "400 S IM": 251.27,
+
+      // Long Course Meters (LCM / L)
+      "50 L Free": 22.42,
+      "100 L Free": 48.74,
+      "200 L Free": 107.32,
+      "400 L Free": 232.54,
+      "800 L Free": 485.00,
+      "1500 L Free": 930.00,
+      "50 L Back": 24.80,
+      "100 L Back": 53.30,
+      "200 L Back": 117.07,
+      "50 L Breast": 27.60,
+      "100 L Breast": 60.31,
+      "200 L Breast": 131.83,
+      "50 L Fly": 23.90,
+      "100 L Fly": 52.93,
+      "200 L Fly": 118.82,
+      "200 L IM": 119.33,
+      "400 L IM": 259.21
+    };
+
+    const SAMPLE_DATA = `EventTimePoints50 Y Fly26.2393.38200 S IM2:33.33U100.0050 Y Free24.97100.00100 S Free1:03.83U100.00100 S Fly1:08.05U100.0050 Y Breast33.95100.00100 S Breast1:22.79U100.00200 L Free2:37.38100.00500 Y Free6:33.68100.00200 L Breast3:23.63100.00100 Y Back1:20.65100.0050 Y Back41.09100.00100 Y IM1:02.50100.00`;
+
+    // State
+    let currentCalculatedEvents = [];
+    let currentPowerIndex = null;
+    let profiles = [];
+
+    // DOM Elements
+    const rawPasteInput = document.getElementById('rawPasteInput');
+    const calculateBtn = document.getElementById('calculateBtn');
+    const loadSampleBtn = document.getElementById('loadSampleBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const eventsTableBody = document.getElementById('eventsTableBody');
+    const eventCountBadge = document.getElementById('eventCountBadge');
+    const indexSummaryCard = document.getElementById('indexSummaryCard');
+    const powerIndexVal = document.getElementById('powerIndexVal');
+    const saveProfileSection = document.getElementById('saveProfileSection');
+    const swimmerNameInput = document.getElementById('swimmerNameInput');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const saveFeedbackMsg = document.getElementById('saveFeedbackMsg');
+    
+    // Nav & Views
+    const navCalcBtn = document.getElementById('navCalcBtn');
+    const navProfilesBtn = document.getElementById('navProfilesBtn');
+    const navCompareBtn = document.getElementById('navCompareBtn');
+    const calculatorView = document.getElementById('calculatorView');
+    const profilesView = document.getElementById('profilesView');
+    const compareView = document.getElementById('compareView');
+    const profileBadgeCount = document.getElementById('profileBadgeCount');
+    const profilesGrid = document.getElementById('profilesGrid');
+    const clearAllProfilesBtn = document.getElementById('clearAllProfilesBtn');
+
+    // Compare View Elements
+    const compareSelect1 = document.getElementById('compareSelect1');
+    const compareSelect2 = document.getElementById('compareSelect2');
+    const comparisonContainer = document.getElementById('comparisonContainer');
+    const compareCol1 = document.getElementById('compareCol1');
+    const compareCol2 = document.getElementById('compareCol2');
+    const compareEmptyState = document.getElementById('compareEmptyState');
+
+    // Help Modal
+    const helpBtn = document.getElementById('helpBtn');
+    const helpModal = document.getElementById('helpModal');
+    const closeHelpBtn = document.getElementById('closeHelpBtn');
+
+    // Storage Functions
+    function loadProfilesFromStorage() {
+      try {
+        const stored = localStorage.getItem('swimcloud_profiles');
+        profiles = stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        profiles = [];
+      }
+      updateProfileBadges();
+    }
+
+    function saveProfilesToStorage() {
+      localStorage.setItem('swimcloud_profiles', JSON.stringify(profiles));
+      updateProfileBadges();
+    }
+
+    function updateProfileBadges() {
+      profileBadgeCount.textContent = profiles.length;
+    }
+
+    // Helper: Converts MM:SS.ms or SS.ms string to seconds
+    function parseTimeToSeconds(timeStr) {
+      if (!timeStr) return null;
+      const cleanStr = timeStr.replace(/[URX]/gi, '').trim();
+      const parts = cleanStr.split(':');
+      if (parts.length === 2) {
+        const mins = parseFloat(parts[0]);
+        const secs = parseFloat(parts[1]);
+        if (isNaN(mins) || isNaN(secs)) return null;
+        return (mins * 60) + secs;
+      } else if (parts.length === 1) {
+        const secs = parseFloat(parts[0]);
+        return isNaN(secs) ? null : secs;
+      }
+      return null;
+    }
+
+    function parseSwimcloudText(text) {
+      let cleaned = text.replace(/^EventTimePoints/i, '').trim();
+      const eventPattern = /(50|100|200|400|500|800|1000|1650|1500)\s+([YSL])\s+(Free|Fly|Back|Breast|IM)\s*(\d{1,2}:\d{2}\.\d{2}|\d{2}\.\d{2})([URX])?/gi;
+
+      const events = [];
+      let match;
+
+      while ((match = eventPattern.exec(cleaned)) !== null) {
+        const distance = match[1];
+        const course = match[2].toUpperCase();
+        const stroke = match[3];
+        const timeStr = match[4];
+        const tag = match[5] || '';
+
+        const eventName = `${distance} ${course} ${stroke}`;
+        const timeInSec = parseTimeToSeconds(timeStr);
+
+        if (timeInSec) {
+          events.push({ eventName, timeStr, tag, timeInSec });
+        }
+      }
+
+      return events;
+    }
+
+    function calculatePowerPoints(timeInSec, baseTimeInSec) {
+      if (!baseTimeInSec || !timeInSec) return null;
+      return (Math.pow(timeInSec / baseTimeInSec, 3) - 1) * 100 + 1;
+    }
+
+    function formatTime(seconds) {
+      if (seconds < 60) return seconds.toFixed(2);
+      const mins = Math.floor(seconds / 60);
+      const secs = (seconds % 60).toFixed(2);
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // Main Calculation Logic
+    function processAndDisplay() {
+      const text = rawPasteInput.value.trim();
+      if (!text) {
+        eventsTableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-12 text-center text-slate-500 italic">
+              Please paste Swimcloud table text or click "Sample".
+            </td>
+          </tr>`;
+        eventCountBadge.textContent = '0 Events';
+        indexSummaryCard.classList.add('hidden');
+        saveProfileSection.classList.add('hidden');
+        saveProfileSection.classList.remove('flex');
+        currentCalculatedEvents = [];
+        currentPowerIndex = null;
+        return;
+      }
+
+      const rawEvents = parseSwimcloudText(text);
+
+      if (rawEvents.length === 0) {
+        eventsTableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-12 text-center text-red-400 italic">
+              Unable to parse valid swim times. Ensure text contains events like "50 Y Fly26.23" or "200 S IM2:33.33".
+            </td>
+          </tr>`;
+        eventCountBadge.textContent = '0 Events';
+        indexSummaryCard.classList.add('hidden');
+        saveProfileSection.classList.add('hidden');
+        saveProfileSection.classList.remove('flex');
+        currentCalculatedEvents = [];
+        currentPowerIndex = null;
+        return;
+      }
+
+      const calculatedEvents = rawEvents.map(item => {
+        const baseTime = BASE_TIMES[item.eventName];
+        const points = baseTime ? calculatePowerPoints(item.timeInSec, baseTime) : null;
+        return { ...item, baseTime, points };
+      })
+      .filter(item => item.points !== null)
+      .sort((a, b) => a.points - b.points);
+
+      currentCalculatedEvents = calculatedEvents;
+
+      eventsTableBody.innerHTML = '';
+      eventCountBadge.textContent = `${calculatedEvents.length} Event${calculatedEvents.length === 1 ? '' : 's'}`;
+
+      calculatedEvents.forEach((ev, idx) => {
+        const rank = idx + 1;
+        let weightLabel = '-';
+        let weightClass = 'text-slate-500';
+
+        if (rank === 1 || rank === 2) {
+          weightLabel = '100%';
+          weightClass = 'text-cyan-400 font-semibold';
+        } else if (rank === 3) {
+          weightLabel = '25%';
+          weightClass = 'text-sky-300';
+        } else if (rank === 4) {
+          weightLabel = '2%';
+          weightClass = 'text-blue-300';
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = `hover:bg-slate-800/40 transition-colors ${rank <= 4 ? 'bg-slate-900/60' : ''}`;
+        tr.innerHTML = `
+          <td class="py-3 px-3 font-medium text-slate-400">#${rank}</td>
+          <td class="py-3 px-3 font-semibold text-slate-100 flex items-center gap-1.5">
+            ${ev.eventName}
+            ${ev.tag ? `<span class="px-1.5 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded">${ev.tag}</span>` : ''}
+          </td>
+          <td class="py-3 px-3 font-mono text-slate-200">${ev.timeStr}</td>
+          <td class="py-3 px-3 font-mono text-slate-400 text-right">${ev.baseTime ? formatTime(ev.baseTime) : '-'}</td>
+          <td class="py-3 px-3 font-mono font-bold text-cyan-300 text-right">${ev.points.toFixed(2)}</td>
+          <td class="py-3 px-3 text-center ${weightClass}">${weightLabel}</td>
+        `;
+        eventsTableBody.appendChild(tr);
+      });
+
+      if (calculatedEvents.length >= 2) {
+        const e1 = calculatedEvents[0] ? calculatedEvents[0].points : 0;
+        const e2 = calculatedEvents[1] ? calculatedEvents[1].points : 0;
+        const e3 = calculatedEvents[2] ? calculatedEvents[2].points : 200;
+        const e4 = calculatedEvents[3] ? calculatedEvents[3].points : 200;
+
+        const weightedSum = (1.00 * e1) + (1.00 * e2) + (0.25 * e3) + (0.02 * e4);
+        const totalWeight = 1.00 + 1.00 + 0.25 + 0.02;
+        const index = weightedSum / totalWeight;
+
+        currentPowerIndex = index;
+        powerIndexVal.textContent = index.toFixed(2);
+        indexSummaryCard.classList.remove('hidden');
+
+        saveProfileSection.classList.remove('hidden');
+        saveProfileSection.classList.add('flex');
+      } else {
+        indexSummaryCard.classList.add('hidden');
+        saveProfileSection.classList.add('hidden');
+        saveProfileSection.classList.remove('flex');
+        currentPowerIndex = null;
+      }
+    }
+
+    // Save Profile Action
+    saveProfileBtn.addEventListener('click', () => {
+      const name = swimmerNameInput.value.trim();
+      if (!name) {
+        swimmerNameInput.focus();
+        return;
+      }
+      if (!currentPowerIndex || currentCalculatedEvents.length === 0) return;
+
+      const profile = {
+        id: Date.now().toString(),
+        name: name,
+        powerIndex: currentPowerIndex,
+        events: currentCalculatedEvents,
+        rawText: rawPasteInput.value,
+        savedAt: new Date().toLocaleDateString()
+      };
+
+      // Filter out existing profile with same name if exists
+      profiles = profiles.filter(p => p.name.toLowerCase() !== name.toLowerCase());
+      profiles.unshift(profile);
+      saveProfilesToStorage();
+
+      saveFeedbackMsg.classList.remove('hidden');
+      swimmerNameInput.value = '';
+      setTimeout(() => saveFeedbackMsg.classList.add('hidden'), 3000);
+    });
+
+    // Render Saved Profiles
+    function renderProfilesView() {
+      profilesGrid.innerHTML = '';
+      if (profiles.length === 0) {
+        profilesGrid.innerHTML = `
+          <div class="col-span-full text-center py-12 text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800">
+            <i class="fa-solid fa-folder-open text-3xl mb-2"></i>
+            <p>No saved swimmer profiles found on this device.</p>
+          </div>
+        `;
+        return;
+      }
+
+      profiles.forEach(prof => {
+        const topEvents = prof.events.slice(0, 3);
+        const card = document.createElement('div');
+        card.className = "bg-slate-950/60 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between gap-4";
+        
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-bold text-base text-slate-100">${prof.name}</h3>
+                <span class="text-[10px] text-slate-500">Saved: ${prof.savedAt}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase font-bold text-cyan-400 block">Power Index</span>
+                <span class="text-2xl font-extrabold text-white">${prof.powerIndex.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="mt-4 space-y-1.5">
+              <span class="text-[11px] font-semibold text-slate-400 block">Top Events:</span>
+              ${topEvents.map(e => `
+                <div class="flex justify-between text-xs bg-slate-900/80 px-2.5 py-1 rounded-lg">
+                  <span class="text-slate-300 font-medium">${e.eventName}</span>
+                  <span class="font-mono text-cyan-300">${e.timeStr} (${e.points.toFixed(1)} pts)</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="flex gap-2 pt-2 border-t border-slate-800">
+            <button onclick="loadProfileToCalc('${prof.id}')" class="flex-1 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors">
+              <i class="fa-solid fa-folder-open mr-1"></i> Load
+            </button>
+            <button onclick="deleteProfile('${prof.id}')" class="px-2.5 py-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+        profilesGrid.appendChild(card);
+      });
+    }
+
+    window.loadProfileToCalc = function(id) {
+      const prof = profiles.find(p => p.id === id);
+      if (!prof) return;
+      rawPasteInput.value = prof.rawText;
+      switchView('calc');
+      processAndDisplay();
+    };
+
+    window.deleteProfile = function(id) {
+      profiles = profiles.filter(p => p.id !== id);
+      saveProfilesToStorage();
+      renderProfilesView();
+      populateCompareSelects();
+    };
+
+    clearAllProfilesBtn.addEventListener('click', () => {
+      profiles = [];
+      saveProfilesToStorage();
+      renderProfilesView();
+      populateCompareSelects();
+    });
+
+    function populateCompareSelects() {
+      compareSelect1.innerHTML = '<option value="">Select Swimmer 1...</option>';
+      compareSelect2.innerHTML = '<option value="">Select Swimmer 2...</option>';
+
+      profiles.forEach(p => {
+        compareSelect1.innerHTML += `<option value="${p.id}">${p.name} (Index: ${p.powerIndex.toFixed(2)})</option>`;
+        compareSelect2.innerHTML += `<option value="${p.id}">${p.name} (Index: ${p.powerIndex.toFixed(2)})</option>`;
+      });
+
+      if (profiles.length >= 2) {
+        compareEmptyState.classList.add('hidden');
+        comparisonContainer.classList.remove('hidden');
+        compareSelect1.value = profiles[0].id;
+        compareSelect2.value = profiles[1].id;
+        renderComparison();
+      } else {
+        compareEmptyState.classList.remove('hidden');
+        comparisonContainer.classList.add('hidden');
+      }
+    }
+
+    function renderSwimmerColumn(container, prof, otherProf) {
+      if (!prof) {
+        container.innerHTML = `<div class="text-center py-8 text-slate-500 italic">Select a swimmer above</div>`;
+        return;
+      }
+
+      const isIndexBetter = otherProf ? prof.powerIndex <= otherProf.powerIndex : true;
+
+      container.innerHTML = `
+        <div class="border-b border-slate-800 pb-3 flex justify-between items-end">
+          <div class="pr-2">
+            <h3 class="text-sm sm:text-base font-bold text-slate-100 truncate">${prof.name}</h3>
+            <span class="text-[11px] sm:text-xs text-slate-400">${prof.events.length} parsed events</span>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="text-[9px] sm:text-[10px] uppercase font-semibold text-slate-400 block">Power Index</span>
+            <span class="text-2xl sm:text-3xl font-black ${isIndexBetter ? 'text-emerald-400' : 'text-slate-300'}">
+              ${prof.powerIndex.toFixed(2)}
+              ${isIndexBetter && otherProf ? '<i class="fa-solid fa-trophy text-amber-400 text-xs sm:text-sm ml-0.5"></i>' : ''}
+            </span>
+          </div>
+        </div>
+
+        <div class="space-y-2 mt-2">
+          <h4 class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Top Scoring Events</h4>
+          <div class="space-y-1.5">
+            ${prof.events.map((ev, i) => {
+              const otherEvent = otherProf ? otherProf.events.find(e => e.eventName === ev.eventName) : null;
+              let highlightClass = 'text-slate-300';
+              if (otherEvent) {
+                highlightClass = ev.points <= otherEvent.points ? 'text-emerald-400 font-semibold' : 'text-slate-400';
+              }
+              return `
+                <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
+                  <div class="min-w-0 flex-1">
+                    <span class="text-slate-500 text-[10px] mr-1">#${i + 1}</span>
+                    <span class="font-medium text-slate-200 truncate inline-block max-w-[110px] sm:max-w-none align-bottom">${ev.eventName}</span>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <span class="font-mono text-slate-300 mr-2 text-[11px] sm:text-xs">${ev.timeStr}</span>
+                    <span class="font-mono text-cyan-300 font-bold text-[11px] sm:text-xs ${highlightClass}">${ev.points.toFixed(1)} pts</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderComparison() {
+      const p1 = profiles.find(p => p.id === compareSelect1.value);
+      const p2 = profiles.find(p => p.id === compareSelect2.value);
+
+      renderSwimmerColumn(compareCol1, p1, p2);
+      renderSwimmerColumn(compareCol2, p2, p1);
+    }
+
+    compareSelect1.addEventListener('change', renderComparison);
+    compareSelect2.addEventListener('change', renderComparison);
+
+    // Navigation Switcher
+    function switchView(view) {
+      calculatorView.classList.add('hidden');
+      profilesView.classList.add('hidden');
+      compareView.classList.add('hidden');
+
+      navCalcBtn.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5";
+      navProfilesBtn.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5";
+      navCompareBtn.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5";
+
+      if (view === 'calc') {
+        calculatorView.classList.remove('hidden');
+        navCalcBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition-colors flex items-center gap-1.5";
+      } else if (view === 'profiles') {
+        profilesView.classList.remove('hidden');
+        profilesView.classList.add('flex');
+        navProfilesBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition-colors flex items-center gap-1.5";
+        renderProfilesView();
+      } else if (view === 'compare') {
+        compareView.classList.remove('hidden');
+        compareView.classList.add('flex');
+        navCompareBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition-colors flex items-center gap-1.5";
+        populateCompareSelects();
+      }
+    }
+
+    navCalcBtn.addEventListener('click', () => switchView('calc'));
+    navProfilesBtn.addEventListener('click', () => switchView('profiles'));
+    navCompareBtn.addEventListener('click', () => switchView('compare'));
+
+    // Calculator Actions
+    calculateBtn.addEventListener('click', processAndDisplay);
+    loadSampleBtn.addEventListener('click', () => {
+      rawPasteInput.value = SAMPLE_DATA;
+      processAndDisplay();
+    });
+    clearBtn.addEventListener('click', () => {
+      rawPasteInput.value = '';
+      processAndDisplay();
+    });
+
+    helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
+    closeHelpBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+    // Initialization
+    window.onload = function() {
+      loadProfilesFromStorage();
+      // Input box stays blank on start as requested
+      rawPasteInput.value = '';
+      processAndDisplay();
+    };
+  </script>
+</body>
+</html>
